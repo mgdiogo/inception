@@ -1,37 +1,32 @@
 #!/bin/sh
 
-if [ ! -d "/var/lib/mysql/$MYSQL_DATABASE" ]; then
+if [ ! -d /run/mysqld ]
+then
 
-service mariadb start
-
-mysql_secure_installation << END
-
-Y
-$MYSQL_ROOTPASSWORD
-$MYSQL_ROOTPASSWORD
-Y
-Y
-Y
-Y
-END
-echo "Creating database $MYSQL_DATABASE..."
-    sleep 1
-    mysql -u root -e "CREATE DATABASE $MYSQL_DATABASE;"
-    mysql -u root -e "CREATE USER '$MYSQL_USER'@'%' IDENTIFIED BY '$MYSQL_PASSWORD';"
-    mysql -u root -e "GRANT ALL PRIVILEGES ON *.* TO '$MYSQL_USER'@'%';"
-    mysql -u root -e "FLUSH PRIVILEGES;"
-
-    mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '$MYSQL_ROOTPASSWORD';"
-    mysql -u root -p$MYSQL_ROOTPASSWORD -e "FLUSH PRIVILEGES;"
-    mysqladmin -u root -p$MYSQL_ROOTPASSWORD shutdown
-
-	echo "Finished creating database, user privileges granted\n"
-else
-    sleep 1
-    echo "Database already exists... continuing"
+	mysql_install_db --basedir=/usr --datadir=/var/lib/mysql
 fi
 
+if [ ! -d init.sql ]
+then
+echo 'Creating the init.sql file.'
+cat << EOF > init.sql
+	USE mysql;
+	FLUSH PRIVILEGES;
+	ALTER USER 'root'@'localhost' IDENTIFIED BY '$MYSQL_ROOTPASSWORD';
+	CREATE DATABASE IF NOT EXISTS $MYSQL_DATABASE;
+	CREATE USER IF NOT EXISTS '$MYSQL_USER'@'%';
+	SET PASSWORD FOR '$MYSQL_USER'@'%' = PASSWORD('$MYSQL_PASSWORD');
+	CREATE USER IF NOT EXISTS '$WP_ADMIN'@'%';
+	SET PASSWORD FOR '$WP_ADMIN'@'%' = PASSWORD('$WP_ADMIN_PASS');
+	GRANT ALL PRIVILEGES ON wordpress.* TO '$MYSQL_USER'@'%';
+	GRANT ALL PRIVILEGES ON wordpress.* TO '$WP_ADMIN'@'%';
+	FLUSH PRIVILEGES;
+EOF
 
-# Keeps mariadb server running
+sed -i 's/^[ \t]*//' init.sql
+
+mysqld --user=mysql --bootstrap < init.sql
+
+fi
 
 exec mysqld --user=mysql --console
