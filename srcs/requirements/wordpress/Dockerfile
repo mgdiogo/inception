@@ -27,4 +27,4 @@ RUN chmod -R 755 /var/www/html/
 
 EXPOSE 9000
 
-ENTRYPOINT ["/bin/bash", "/script.sh"]
+ENTRYPOINT ["/script.sh"]
