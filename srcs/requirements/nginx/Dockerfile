@@ -21,4 +21,6 @@ RUN mkdir -p /run/nginx
 
 EXPOSE 443
 
+# Here we tell NGINX to not run as a background process but as a foreground process (makes it so the container does not exit when the process is complete)
+
 CMD ["nginx", "-g", "daemon off;"]
